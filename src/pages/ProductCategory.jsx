@@ -2,15 +2,41 @@ import { Spinner } from "flowbite-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import CardList from "../components/CardList";
+import SearchComp from "../components/SearchComp";
+import DDownComp from "../components/DDownComp";
+import PaginationComp from "../components/PaginationComp";
 
 export default function ProductCategory() {
   const { categoryId } = useParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  async function getProducts() {
-    const url =
-      "https://api.escuelajs.co/api/v1/products/?categoryId=" + categoryId;
+  const onPageChange = (page) => {
+    setCurrentPage(page);
+    // tidak mengirim url, karena udah di rul = function sudah ada currentPage dari set
+    getProducts();
+  };
+
+  function processSearch(event) {
+    setSearch(event.target.value);
+    let url =
+      "https://api.escuelajs.co/api/v1/products" +
+      "?title=" +
+      search +
+      "&categoryId=" +
+      categoryId;
+    setLoading(true);
+    getProducts(url);
+  }
+
+  async function getProducts(
+    url = "https://api.escuelajs.co/api/v1/products/?categoryId=" +
+      categoryId +
+      "&limit=8&offset=0" +
+      currentPage,
+  ) {
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -25,26 +51,58 @@ export default function ProductCategory() {
     }
   }
 
+  function processSort(type) {
+    // console.log(type);
+    // copy isi products ke nama baru agar terdeteksi di setProoducts unutk memunculkan tampilan produk baru (sesuai hasli sort)
+    let productNew = [...products];
+    if (type == "harga termurah") {
+      productNew.sort(function (a, b) {
+        return a.price - b.price;
+      });
+    } else if (type == "harga termahal") {
+      productNew.sort(function (a, b) {
+        return b.price - a.price;
+      });
+    } else if (type == "alfabet menurun") {
+      productNew.sort((a, b) =>
+        a.title.toLowerCase().localeCompare(b.title.toLowerCase()),
+      );
+    } else if (type == "alfabet menaik") {
+      productNew.sort((a, b) =>
+        b.title.toLowerCase().localeCompare(a.title.toLowerCase()),
+      );
+    }
+    setProducts(productNew);
+  }
+
   useEffect(() => {
     getProducts();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center">
-        <Spinner aria-label="Default status example" />
-        Sedang Mengambil data....
-      </div>
-    );
-  }
+  
 
   return (
     <>
-      <div className="text-4xl font-bold mt-3">
-        Produk Kategori {products[0].category.name}
+      <div className="text-2xl font-bold text-center mt-2 mb-2">
+        Produk Kategori
       </div>
-      <div className="mb-5 mt-5">
-        <CardList data={products} type="products" />
+
+      <div className="flex mb-4 justify-center gap-2">
+        <SearchComp processSearch={processSearch} />
+        <DDownComp processSort={processSort} />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center">
+          <Spinner aria-label="Default status example" />
+          Sedang Load..
+        </div>
+      ) : (
+        <CardList data={products} type="products"></CardList>
+      )}
+
+      <div className="mt-5 mb-5">
+        <PaginationComp currentPage={currentPage} onPageChange={onPageChange} />
       </div>
     </>
   );
