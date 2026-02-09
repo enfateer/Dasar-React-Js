@@ -12,7 +12,7 @@ export default function CardList({ data, type, children }) {
           ) : (
             <CardEcommerce key={index} item={item} />
           )
-        )}
+        )}  
       </div>
     </div>
   );
